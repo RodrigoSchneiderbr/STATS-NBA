@@ -2,9 +2,21 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
+import subprocess
+import sys
+import time
 
 # ==========================================
-# 1. DEVE SER O PRIMEIRO COMANDO DO STREAMLIT
+# 1. CONFIGURAÇÃO DE CAMINHOS ABSOLUTOS
+# ==========================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+FILENAME = os.path.join(DATA_DIR, "jogadores_nba_2026_27_todas_colunas.csv")
+
+os.makedirs(DATA_DIR, exist_ok=True)
+
+# ==========================================
+# 2. CONFIGURAÇÃO DA PÁGINA
 # ==========================================
 st.set_page_config(
     page_title="Dashboard Analítico NBA 2026-27",
@@ -12,13 +24,45 @@ st.set_page_config(
     layout="wide"
 )
 
-# Agora sim, os títulos e textos da página
 st.title("🏀 Dashboard Analítico da NBA (Temporada 2026-27)")
 st.markdown("Análise estatística avançada baseada nas estatísticas consolidadas da temporada.")
 
-# Caminho relativo limpo para versionamento no GitHub
-filename = "data/jogadores_nba_2026_27_todas_colunas.csv"
+# ==========================================
+# 3. BOTÃO DE PRIMEIRA EXECUÇÃO (Caso o CSV não exista)
+# ==========================================
+if not os.path.exists(FILENAME):
+    st.warning(f"⚠️ O arquivo de dados ainda não foi gerado.")
+    st.info("Esta é a primeira execução. Clique no botão abaixo para baixar os dados da API da NBA automaticamente.")
+    
+    if st.button("🚀 Gerar Base de Dados da Temporada (Primeira Execução)", type="primary"):
+        with st.spinner("Instalando dependências e extraindo dados da API da NBA... Isso pode levar alguns segundos."):
+            try:
+                # 1. Garante que a nba_api está instalada
+                subprocess.run([sys.executable, "-m", "pip", "install", "nba_api"], check=True)
+                
+                # 2. Executa o extraction_full.py usando caminho absoluto
+                script_path = os.path.join(BASE_DIR, "extraction_full.py")
+                subprocess.run([sys.executable, script_path], capture_output=True, text=True, check=True)
+                
+                # 3. Pausa de segurança para garantir a gravação do arquivo no disco
+                time.sleep(2)
+                
+                # 4. Valida se o arquivo foi criado e recarrega
+                if os.path.exists(FILENAME):
+                    st.success("✅ Base de dados gerada com sucesso! Recarregando a aplicação...")
+                    st.rerun()
+                else:
+                    st.error("❌ O script rodou, mas o arquivo CSV não foi encontrado no caminho esperado.")
+                    
+            except subprocess.CalledProcessError as e:
+                st.error(f"❌ Erro ao executar o processo:\n{e.stderr}")
+            except FileNotFoundError:
+                st.error("❌ O arquivo 'extraction_full.py' não foi encontrado na pasta raiz do projeto.")
+        st.stop()
 
+# ==========================================
+# 4. CARREGAMENTO E PADRONIZAÇÃO DOS DADOS
+# ==========================================
 @st.cache_data
 def carregar_e_padronizar_dados(caminho):
     if not os.path.exists(caminho):
@@ -27,7 +71,6 @@ def carregar_e_padronizar_dados(caminho):
     df = pd.read_csv(caminho)
     df = df.fillna(0)
     
-    # Dicionário para padronizar nomes comuns (inglês da API vs português)
     renomear_colunas = {
         'PLAYER_NAME': 'nome_jogador',
         'TEAM_ABBREVIATION': 'sigla_time',
@@ -51,16 +94,14 @@ def carregar_e_padronizar_dados(caminho):
     df = df.rename(columns={k: v for k, v in renomear_colunas.items() if k in df.columns})
     return df
 
-# Carregamento dos dados
-df_jogadores = carregar_e_padronizar_dados(filename)
+df_jogadores = carregar_e_padronizar_dados(FILENAME)
 
 if df_jogadores is None:
-    st.error(f"⚠️ O arquivo `{filename}` não foi encontrado dentro da pasta `data/`. Verifique se o arquivo está no diretório correto.")
+    st.error(f"⚠️ O arquivo `{FILENAME}` ainda não está disponível.")
 else:
     # Abas para separar as análises
     aba1, aba2, aba3 = st.tabs(["🔥 Peladeiro Master", "🛡️ Defensor Elite", "⭐ All-NBA Teams"])
     
-    # Função auxiliar segura para extração de colunas numéricas
     def extrair_coluna(df, nomes_possiveis, valor_padrao=0.0):
         for nome in nomes_possiveis:
             if nome in df.columns:
