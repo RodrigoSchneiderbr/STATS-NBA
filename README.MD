@@ -30,6 +30,9 @@ nba/
 │   └── jogadores_nba_2026_27_todas_colunas.csv  # Fonte única de verdade (estatísticas consolidadas)
 │
 ├── .gitignore          # Arquivos e pastas ignoradas pelo Git
+├── requirements.txt    # Dependências do projeto
+├── extracao_full.py    # Script de extração completa/histórica da temporada
+├── extracao_weekly.py  # Script de extração e logs semanais
 ├── app.py              # Aplicação principal em Streamlit
 └── README.md           # Documentação oficial do projeto
 
