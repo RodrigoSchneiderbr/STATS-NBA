@@ -32,3 +32,13 @@ nba/
 ├── .gitignore          # Arquivos e pastas ignoradas pelo Git
 ├── app.py              # Aplicação principal em Streamlit
 └── README.md           # Documentação oficial do projeto
+
+```
+## Rodando local
+
+``` text
+pip install -r requirements.txt
+```
+```text
+streamlit run app.py
+```
