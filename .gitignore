@@ -1,0 +1,30 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# --- Streamlit ---
+.streamlit/
+
+# --- IDEs & Editores (VS Code) ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Sistema Operacional ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Dados e Logs Locais ---
+# (Descomente a linha abaixo se NÃO quiser subir seus arquivos CSV para o GitHub)
+# data/
+logs/
+*.log
