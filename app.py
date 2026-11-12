@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import os
 from pathlib import Path
+import subprocess
+import sys
 import time
 
 # ==========================================
@@ -24,54 +26,67 @@ st.set_page_config(
     layout="wide"
 )
 
+# ==========================================
+# 3. BARRA LATERAL (Sidebar) - OPÇÃO DE ATUALIZAÇÃO
+# ==========================================
+st.sidebar.title("⚙️ Painel de Controle")
+st.sidebar.markdown("---")
+st.sidebar.subheader("Manutenção de Dados")
+st.sidebar.markdown("Clique abaixo para buscar as estatísticas mais recentes direto da API da NBA:")
+
+if st.sidebar.button("🔄 Atualizar Base de Dados Agora", type="primary"):
+    with st.spinner("Buscando novos dados da API da NBA... Isso pode levar alguns segundos."):
+        try:
+            # Caminho para o seu script de extração (certifique-se de que o nome do arquivo corresponde ao seu)
+            script_path = BASE_DIR / "extraction_full.py"
+            
+            # Executa o script de extração em segundo plano
+            resultado = subprocess.run([sys.executable, str(script_path)], capture_output=True, text=True, check=True)
+            
+            # Pausa de segurança para gravação no disco
+            time.sleep(2)
+            
+            if FILENAME.exists():
+                st.sidebar.success("✅ Base de dados atualizada com sucesso!")
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.sidebar.error("❌ O script rodou, mas o arquivo CSV não foi encontrado.")
+                if resultado.stdout:
+                    st.text(resultado.stdout)
+        except subprocess.CalledProcessError as e:
+            st.sidebar.error(f"❌ Erro ao executar a atualização:\n{e.stderr}")
+        except FileNotFoundError:
+            st.sidebar.error("❌ O script 'extraction_full.py' não foi encontrado na pasta do projeto.")
+
+st.sidebar.markdown("---")
+st.sidebar.info("Dashboard desenvolvido com Streamlit, Pandas e `nba_api`.")
+
+# ==========================================
+# 4. TELA PRINCIPAL E PRIMEIRA EXECUÇÃO
+# ==========================================
 st.title("🏀 Dashboard Analítico da NBA (Temporada 2026-27)")
 st.markdown("Análise estatística avançada baseada nas estatísticas consolidadas da temporada.")
 
-# ==========================================
-# 3. BOTÃO DE PRIMEIRA EXECUÇÃO (Caso o CSV não exista)
-# ==========================================
 if not FILENAME.exists():
     st.warning("⚠️ O arquivo de dados consolidados ainda não foi gerado.")
-    st.info("Esta é a primeira execução. Clique no botão abaixo para baixar os dados da API da NBA diretamente por aqui.")
+    st.info("Esta é a primeira execução. Clique no botão da barra lateral (ou utilize o botão abaixo) para gerar os dados.")
     
     if st.button("🚀 Gerar Base de Dados da Temporada (Primeira Execução)", type="primary"):
-        with st.spinner("Buscando estatísticas oficiais da NBA... Isso pode levar alguns segundos."):
+        with st.spinner("Configurando ambiente e extraindo dados da API da NBA..."):
             try:
-                # Importa a biblioteca diretamente no Streamlit
-                from nba_api.stats.endpoints import leaguedashplayerstats
-                
-                # Configura pandas
-                pd.set_option('display.max_columns', None)
-                
-                # Puxa os dados da API
-                player_stats = leaguedashplayerstats.LeagueDashPlayerStats(
-                    season='2026-27',
-                    timeout=60
-                )
-                df_players = player_stats.get_data_frames()[0]
-                
-                # Salva o arquivo CSV no caminho relativo correto
-                df_players.to_csv(FILENAME, index=False)
-                
-                # Pausa de segurança para gravação no disco
-                time.sleep(1)
-                
+                script_path = BASE_DIR / "extraction_full.py"
+                subprocess.run([sys.executable, str(script_path)], capture_output=True, text=True, check=True)
+                time.sleep(2)
                 if FILENAME.exists():
-                    st.success("✅ Base de dados gerada com sucesso! Recarregando a aplicação...")
+                    st.success("✅ Base gerada com sucesso! Recarregando...")
                     st.rerun()
-                else:
-                    st.error("❌ Ocorreu um erro ao gravar o arquivo CSV no disco.")
-                    
-            except ImportError:
-                st.error("❌ A biblioteca `nba_api` não está instalada neste ambiente. Rode `pip install nba_api` no seu terminal uma única vez.")
             except Exception as e:
-                st.error(f"❌ Erro ao conectar com a API da NBA: {e}")
+                st.error(f"Erro: {e}")
         st.stop()
-        
-time.sleep(20)  # Pausa de segurança para evitar sobrecarga na API
 
 # ==========================================
-# 4. CARREGAMENTO E PADRONIZAÇÃO DOS DADOS
+# 5. CARREGAMENTO E PADRONIZAÇÃO DOS DADOS
 # ==========================================
 @st.cache_data
 def carregar_e_padronizar_dados(caminho):
