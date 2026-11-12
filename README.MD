@@ -45,3 +45,6 @@ pip install -r requirements.txt
 ```text
 streamlit run app.py
 ```
+## Rodando local
+
+No streamlit tem um botão para atualizar base de dados
